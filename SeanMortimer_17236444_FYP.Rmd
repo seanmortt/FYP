@@ -1,0 +1,509 @@
+---
+title: "Examining the Relationship Between Oil Consumption and Covid-19 in Ireland"
+author: "Sean Mortimer 17236444"
+date: "09/04/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(readr)
+library(TSA)
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+library(kableExtra)
+library(tseries)
+library(tsDyn)
+library(vars)
+library(dynamac)
+library(dLagM)
+library(ARDL)
+library(nardl)
+library(stargazer)
+library(pander)
+options(warn = -1)
+setwd <- ("C:/Users/seanm/Desktop/FYP NEW")
+Data <- read.csv("C:/Users/seanm/Desktop/FYP NEW/12to12.csv")
+
+```
+
+```{r, echo=FALSE}
+# Call Variables
+Oil <- Data$Oil
+Deaths <- Data$Deaths
+Cases <- Data$Cases
+IR <- Data$Interest.Rate
+Stocks <- Data$Stocks
+
+Data$IR <- Data$Interest.Rate
+
+```
+### 1. Introduction
+Covid-19 which originated in Wuhan, China quickly spread across the world forcing governments to shut down industries and impose restrictions on the daily lives of the public. This was to prevent the rapid spread of the virus. By 27th March, all educational facilities and businesses were closed in Ireland, and the public were given stay-at-home orders imposed by the government _(Brennan, 2021)_. This was the first lockdown in Ireland which lasted until 18th May after numerous extensions. Restrictions were eased from level 5 to level 3 from here up until the next level 5 lockdown which was imposed on the 19th October for 6 weeks before a third one to take place on 24th December. These lockdowns resulted in Ireland having one of the highest rates of people working from home due to the virus _(Burke-Kennedy, 2020)_. This along with banned tourism had immediate effects on the transport industry.  
+Irelands main source of energy consumption is Oil which accounts for 48.8% of the share of primary energy in Ireland as of 2018 signifying the nations' high dependency on this fuel _(SEAI, 2021)_. The total primary energy requirement (TPER) was 7148 ktoe in 2018, 2668 ktoe greater than the second biggest energy source of natural gas. This is due to its' major contribution to the transport sector which primarily includes aviation, industrial transport, and public and private motorists. In 2018, 71% of energy used in the transport sector was from oil which only equated to 50% of the fuels' total usage. This resembles a high dependency rate whereby Irelands' oil dependence was ranked the fourth highest in the EU behind Malta (54%), Luxembourg (65%) and Cyprus (90%). The remaining oil contributes mostly to residential heating and the industrial sector.   
+The first lockdown had a significant impact on transport such as the aviation industry as well as those entering the country on boat when comparing 2020 figures to those in previous year. This resulted in a 43.31% decrease in overseas arrivals in March compared to the same period in the prior year _(CSO, 2021)_. April and May also experienced extreme reductions from 1,712,900 and 1,818,900 to 16,100 and 28,300 respectively before improving in June and July as the lockdown restrictions eased. Although, similar statistics for the remainder of the year are not available, I would expect the trend changes to follow a very similar pattern caused by the October and December lockdowns.  
+Statistics for selected traffic counters showed that the average weekly volume of heavy goods vehicles (HGV's) had a decrease of over 28% each week from the 29th March to the 17th May compared to 2019 figures before correcting itself around the last week of May when lockdown restrictions eased. The average weekly volume of private motorists saw continuous decreases compared to 2019 figures up until the 26th July. The biggest decrease was in the 2nd week of April (-77.7%). Public transport saw dramatic reductions in passengers throughout the lockdown compared to pre-Covid-19 figures with the rail industry being the worst affected. This statistic includes intercity and DART services and saw a 97.2% reduction in rail passengers in the first week of lockdown compared to the first week of March of that year. These significant reductions in each sector of the transport industry outline the negative impact the Covid-19 virus has had on oil consumption.   
+On the other hand, there has been a substantial increase in the deliveries of home heating oil with it being 80% higher during the onset of the pandemic compared to March of 2019 _(EPA, 2020)_. This was contributed to the low price of oil and uncertainty around how long the lockdown would last. This paper will use a regression analysis to examine the short term and long-term relationship between Covid-19 and oil consumption through the use of an autoregressive distributed (ARDL) error correction model. 
+ 
+
+### 2. Literature Review
+Historically, influenza induced pandemics have impacted economies differently. The impacts are largely up to infection and death rates and the state of the economy at that time. It is estimated by Patterson and Pyle (1991) that the Spanish Influenza (1918 - 1920) took the lives of between 24.7 million and 39.3 million people _(Roser, 2020)_. Although this figure has been debated numerous times, it is undeniable how serious this disease was. However, studies dating back this far have found it difficult to find accurate results on the economic effects this virus had due to limited data and lack of records. Technological advancements since 1918 have improved significantly when looking at the supply and demand for oil. Many factors affect this such as higher populations, industrialisation, and trading abilities.   
+The most recent pandemic to affect Ireland (before Covid-19) was in 2009. H1N1, more commonly known as the "Swine flu" which resulted in the deaths of 27 people in Ireland out of the 575,400 people worldwide _(HSE, 2019)_.  The death rate of this virus was insignificant in Ireland compared to that of Covid-19 so far and more importantly, it did not result in nationwide lockdowns here and nearly all over the world. Many of these papers used the number of people infected and/or death rates linked to the virus to measure the impact it had on the dependent variable.
+It is inevitable that these lockdowns would have volatile effects on energy usage patterns in Ireland. S&P Global found that oil demand was cut by 20% of total demand in March and April due to restricted global mobility bacause of lockdowns _(S&P Global, 2020)_. A new strain of the virus was found in the UK resulting in them closing their borders. This raised uncertainty in meeting Irelands demand for energy resources with oil in particular as all of Irelands oil consumption is imported and 76% of which is from the UK _(SEAI, 2016)_. However, S&P Global were quick to announce that shipments would continue as normal.   
+This paper aims to examine the relationship between Covid-19 factors such as deaths and cases on oil demand in Ireland. Will the demand for oil fall for a large period of time due to wide scale business closures or will the impact be stabilised by the increased residential use as mentioned? This analysis is important when taking an environmental perspective as energy consumption has shown to have a positive significant relationship with CO2 emissions in other studies _(Arouri et al., 2012)_. Greenhouse gas (GHG) emissions declined by 5.9% in 2020 of which 2 million tonnes of Co2 fell in the oil fuelled transport sector _(O'Sullivan, 2021)_. Based off these findings I would expect the virus to have a significant effect on oil consumption in Ireland.  
+Ireland was 66th in the world for oil consumption which is a relatively high ranking given the small size of the country _(Worldometer, 2021)_. Their goals are to reduce greenhouse gas emissions by 20% on 2005 levels as of 2020, 40% by 2030 as agreed by member states of the EU and between 80% and 95% by 2050 based off 1990 levels _(SEAI, 2020)_. Since the Paris Agreement in 2015, emission levels fell in both 2017 and 2018 whilst the economy still grew on both years signifying sustainable economic growth. This poses the question if lockdowns and other restrictions imposed as a result of the Covid-19 pandemic will force Ireland backwards into the pre-industrial stage or push the country forwards into the post-industrial stage of the Kuznets curve _(I. Stern, 2018)_.  
+The novel Covid-19 pandemic has resulted in many research reports looking to measure the economic effects caused so far, some of which have concentrated on energy. However, most papers examine the relationship the virus has had with energy consumption as a whole or oil prices rather than solely oil consumption. A study was conducted on the hourly electricity usage patterns amidst the pandemic in the province of Ontario, Canada which found very interesting results _(Buechler et al., 2020)_. It found that electricity consumption in the province declined by 14% and the usage patterns throughout the week changed roles. Pre-Covid-19 had higher demand at the end of the week rather than throughout the week which became inverted post-Covid-19. This was largely attributed to residential uses as a result of work from home restrictions under lockdown.   
+Another paper examined the effects of Covid-19 on energy consumption in India _(Aruga et al., 2020)_. This paper also used the ARDL model and found that a long-run positive relationship existed between cases and Indian energy consumption. It also discovered that energy consumption started to recover as the lockdown relaxed.   
+Another paper analysed the impacts Covid-19 on oil and electricity demand in China _(Norouzi et al ., 2020)_. This paper used a hybrid model by employing the ARDL model and a neural network model to explain the relationships. It found that epidemic severeness (measured by deaths) had significant effects on electricity and oil demand both directly and indirectly. It also showed that the status of the pandemic had a significant impact on energy demand. I would expect my findings to resemble those of this paper. 
+Numerous regression analysis methods have been used to predict the energy consumption in the past such as the conventional linear regression model, neural network model and the auto regressive distributed lag model (ARDL) as mentioned earlier. The ARDL model approach developed by Pearson, Shin and Smith will be the one I will use for my regression analysis _(Pesaran, Shin and Smith, 2001)_. The ARDL model has been widely used do determine both short-term and long-term effects on variables such as money demand, economic growth, and energy consumption. However, in recent years, the model has been used to measure the spread of a disease over time. For example, a study was conducted to predict the incidence of influenza in Nagasaki, japan _(He et al., 2017)_. Papers that use the ARDL model for a similar purpose have increased significantly in the last year due to the Covid-19 outbreak which can be seen in the papers that examined energy consumption in India and China previously mentioned. The main benefit of this model is its ability to examine short-term and long-term effects on the dependent variable. Its ability to perform non-linear regressions on small sample sizes over a period of time makes the model suitable for my analysis. This is due to the limited chosen time-series and pandemic related variables in contrast to economic reports that predicted energy consumption in the past.   
+Pearson, Shin and Smith developed an approach called the bound test of cointegration which determines if cointegration exists between a dependent variable and its regressors. A key characteristic of this approach is its ability to perform this test on variables of mixed orders. It then reparametrizes the variables into the error correction model where the short-run and long-run relationships can be examined. This is important when considering the results of my stationary and unit-root tests. 
+  
+
+### 3. Methodology
+As mentioned, linear regression has often been used to explain changes in energy consumption but due to the economic shock caused by the pandemic, I suspected that the impact would require a non-linear form of regression for analysis. To check this, I created plots of each variable with their original values as well as the logged transformed values and noticed the trends were still non-linear. To conclude my suspicion, I continued to run the linear regression model so that I could perform further tests. These tests displayed the existence of both autocorrelation and heteroscedasticity which would render my hypotheses unreliable. This, along with an extremely high R-squared value indicated spurious regression and the need for a different model. This led to the choice of the ARDL model which supports non-linear regression as well as small sample sizes.   
+Firstly, I had to discover the optimal lag for each variable. This was done through interpreting autocorrelation function (ACF) as well as partial autocorrelation function (PACF) plots. The PACF is chosen over the ACF if the ACF displays decaying lags. The optimal lag is then chosen where the lag exceeds the 95% confidence level. This was also further supported by choosing the model which produced the lowest Akaike Information Criterion (AIC).   
+The next step is to complete unit root tests on each variable to determine if the model consists of variables which are all stationary, all non-stationary or mixed. A requirement for the ARDL model is that the dependent variable must be integrated of order one and the regressors can be mixed. The next step is to check if cointegration exists between any two of my variables. If no cointegration exists, I can't go any further and my ARDL model explains the short-run relationships between my independent variables and my dependent variable. If cointegration does exist, I can take my analysis a step further by employing an error correction model (ECM) to predict any long-run relationships. Furthermore, I will also complete a Granger causality test _(Granger, 1969)_. The causality test uses hypotheses to check if one time series can contribute to the prediction of another time series.    
+In order to make sure my chosen variables were suitable for the ARDL model, I had to make sure they were stationary over the given time series. A time series is stationary if it the statistical properties such as mean, variance and covariance do not change overtime. A variable that is shown to be non-stationary implies that features such as a trend or a cycle etc. exists within the data and is not suitable for regression. Therefore, it is important that I check if my variables are level stationary or at first difference as per ARDL requirements. Firstly, I checked this visually by plotting each variable over the time series to see if a clear trend or seasonality existed.
+
+##### Figure 1.
+```{r, echo=FALSE, fig.show="hold", out.width="50%"}
+
+#Oil
+Oil <- ts(Oil, frequency = 12, start=c(2017,12), end = c(2020,12))
+plot(Oil,main = "(a)", ylab = "Oil", xlab = "Months")
+points(y=Oil,x=time(Oil),
+       pch=as.vector(season(Oil)), col=2, cex=1)
+#Deaths
+Deaths <- ts(Deaths, frequency = 12, start=c(2017,12), end = c(2020,12))
+plot(Deaths,main = "(b)", ylab = "Deaths", xlab = "Months")
+points(y=Deaths,x=time(Deaths),
+       pch=as.vector(season(Deaths)), col=2, cex=1 )
+#Cases
+Cases <- ts(Cases, frequency = 12, start=c(2017,12), end = c(2020,12))
+plot(Cases,main = "(c)", ylab = "Cases", xlab = "Months")
+points(y=Cases,x=time(Cases),
+       pch=as.vector(season(Cases)), col=2, cex=1 )
+#IR
+IR <- ts(IR, frequency = 12, start=c(2017,12), end = c(2020,12))
+plot(IR,main = "(d)", ylab = "IR", xlab = "Months")
+points(y=IR,x=time(IR),
+       pch=as.vector(season(IR)), col=2, cex=1 )
+#Stocks
+Stocks <- ts(Stocks, frequency = 12, start=c(2017,12), end = c(2020,12))
+plot(Stocks,main = "(e)", ylab = "Stocks", xlab = "Months")
+points(y=Stocks,x=time(Stocks),
+       pch=as.vector(season(Stocks)), col=2, cex=1 )
+```
+
+Visualising the time series for each variable is a useful method for indicating stationarity before performing statistical tests. Upon initial inspection, no monthly seasonality looks to exist within any of the variables. Oil consumption seems to have a constant mean up until March of 2020 just as it takes a large dip in April before recovering up to October. Due to this change I would suspect the time series to be non-stationary. Deaths and cases are difficult to predict due to the timing of introduction of the disease in Ireland in relation to the nature of the time-series. This inevitably suggests complete stationarity up until the March of 2020. The level of deaths increases rapidly in April before decreasing just as rapidly. The numbers then slowly rise for the remainder of the year. In contrast, the level of cases increases exponentially again in the month of July putting further emphasis on the changing mean and variation. Therefore, I am unclear of the stationarity of deaths over the time series, but I suspect cases to be non-stationary. As for my control variables, the interest rate has a clear downward trend indicating strong non-stationarity. The stock prices display strong changes in the mean and variance as time goes on which also indicates non-stationarity. I can now perform unit root and stationarity tests for confirmation of my suspicions.  
+I used three separate tests to provide me with statistical support regarding the stationarity of my variables. Two of these tests were the Augmented Dickey-Fuller and Phillips Perron tests whereby each has a null hypothesis stating the existence of a unit-root and an alternative hypothesis suggesting stationarity. I also used a stationarity test known as Kwiatkowski-Phillips-Schmidt-Shin (KPSS) which has, in contrast, a null hypothesis stating stationarity while the alternative hypothesis suggests the existence of a unit root. If a variable is shown to be level stationary, it is said to be integrated at order 0, similarly, I(0). If the variable is shown to be non-stationary initially, a first difference is used to make the variable stationary at order 1, similarly, I(1). It is required for an ARDL model that the variables are integrated at either I(0) or I(1) and anything greater than this e.g. I(2), I(3). etc. can not be used for analysis. It is also required that the dependent variable must be integrated of order 1, I(1) so that long-run relationships can be examined.  
+As a result of these tests, the chosen variables were valid for regression with the ARDL model. The tests also outlined that possible control variables such as GDP growth rates were unsuitable as it was not stationary at first difference over my chosen time series. The final variables chosen for the regression analysis are outlined in Table 1. I then checked if the residuals were white noise by using the Breusch-Godfrey Test to check for autocorrelation as well as the Shapiro-Wilk Test to check for normality.   
+Once the ARDL model was suitable to perform a regression analysis, I could then check if cointegration existed between any of my variables by using the Pearson, Shin and Smith 2001 bounds test. The result of this test determined whether or not I can employ the ECM model to check for long-run relationships.
+The Granger causality test can be used to determine if granger causality exists between two variables in a time-series. This suggests that past value of a variable X can be used help predict future values of a variable Y and vice versa. This can be stated as 'X Granger causes Y' and it can be either uni-directional or bi-directional.   
+Data for my chosen time-series were collected from July 2017 to July 2020. My time-series dated back this far as the pandemic is still affecting the world at the time of this analysis and daily data for oil consumption is unavailable in Ireland. Therefore, I had to use monthly data dating back to when my number of observations met the ARDL model requirements where the number of observations are greater than 30 _(Nkoro and Uko, 2013)_. The variables used to predict the effect of Covid-19 on oil consumption in Ireland is outlined in Table 1 and summarised in Table 2.
+
+##### Table 1.
+
+Variable | Sign | Unit | Source |
+------- | ------- | ------- | -------
+Oil Demand | Oil | Thousand Barrels (kbbl) | _(Knoema, 2021)_
+Covid-19 related Deaths | Deaths | People | _(WHO, 2021)_
+Covid-19 Cases | Cases | People | _(WHO, 2021)_
+Interest Rate | IR | Euro | _(OECD, 2021)_
+Stocks Value | Stocks | Euro | _(Euronext, 2021)_
+
+I chose deaths and cases to be the two variables to capture the effect the virus on oil demand based of the variable selection used in other papers mentioned in the literature review. I chose interest rate to be one of my control variables to control for the reducing interest rate in Ireland as a result of the pandemic which also affects the demand for oil. I chose stock prices to be the other control variable to control for changes in oil consumption and production (which indicates price) during the pandemic. Stock price was also used as a control variable to explain the relationship between Covid-19 and electricity and oil demand in China.  
+For both deaths and cases, I converted daily data to monthly figure by using the mean. I also calculated the stocks variable by converting daily data to monthly figures by using the median. I used the Box-Cox transformation plots to see if an optimal power or natural log transformation was suitable for any of my variables. I concluded that transformation of any of my variables was not necessary.
+
+##### Table 2.
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+Data2 <- cbind(Oil,Deaths,Cases,IR,Stocks)
+
+df <- tbl_df(Data2)
+df.sum <- df %>%
+  summarise_all(list(min = ~min(.), 
+                      q25 = ~quantile(., 0.25), 
+                      median = ~median(.), 
+                      q75 = ~quantile(., 0.75), 
+                      max = ~max(.),
+                      mean = ~mean(.), 
+                      sd = ~sd(.)))
+
+
+# reshape the output for presentation in a table
+df.sum %>% gather(stat, val) %>%
+  separate(stat, into = c("var", "stat"), sep = "_") %>%
+  spread(stat, val) %>%
+  dplyr::select(var, min, q25, median, q75, max, mean, sd) %>%
+  kable() %>%
+  kable_styling()
+```
+
+The table above outlines the major difference between the explanatory variables and the dependent variable. The minimum, median and 1st quartile all take values of 0 compared to the rest of the variables given the nature of the time series length. An important observation between the cases and deaths is the maximum values of 817 and 38 respectively. This will likely have an impact on the unit root tests, as the low range in values of the death rate may result in constant statistical properties over the chosen time series. In contrast, the more extreme value of 817 deaths compared to the rest of the descriptive statistics may just be enough to make the variable non-stationary. This concern was raised when I visualised the plots of each variable in Figure 2. The awkwardness of the time series with restricted data will inevitably affect the true magnitude of the effects on oil consumption discovered in the regression output.
+
+
+### 4. Model
+The steps explained throughout the methodology section led to the construction of the following ARDL model (Eq 1.).  
+
+Eq.1: $\Delta$Oil$_{t}$ = c + $\Delta$$\phi$$_{1}$Oil$_{t-1}$ + $\theta$$_{1}$Deaths + $\Delta$$\phi$$_{2}$Cases$_{t-1}$ + $\Delta$$\phi$$_{3}$IR$_{t-1}$ + $\Delta$$\theta$$_{2}$Stocks$_{t-1}$ + $\epsilon$$_{t}$
+
+Where $\Delta$ represents the first difference of a variable. $_{t}$ refers to the time in months e.g. $_{t-1}$ is the variables time series lagged at one month. C is the intercept and $\epsilon$$_{t}$ is the error term. $\phi$$_{i}$ is the coefficient of the autoregressive variables as defined by the PACF's while $\theta$$_{i}$ is the coefficient of the moving average variables defined by the ACF's. 
+
+The cointegration test explained in Table 3 in the results section indicated that an error correction model can be employed. This along with the ARDL model form the conditional error correction ARDL model shown in (Eq 2.)
+
+Eq.2: $\Delta$Oil$_{t}$ = c + $\lambda$EC$_{t-1}$ + $\Delta$$\phi$$_{1}$Oil$_{t-1}$ + $\theta$$_{1}$Deaths + $\Delta$$\phi$$_{2}$Cases$_{t-1}$ + $\Delta$$\phi$$_{3}$IR$_{t-1}$ + $\Delta$$\theta$$_{2}$Stocks$_{t-1}$ + $\epsilon$$_{t}$
+
+Where this is just the short-run ARDL model plus the cointegration term, also known as the error correction term, denoted by ECt-1. This represents the speed of adjustment from the short-run equilibrium of oil consumption to the long-run equilibrium. It also captures the long-run relationships in the model.
+
+The null hypothesis (H$_{0}$) and alternative hypothesis (H$_{1}$) for this research paper are interpreted at a 95% confidence interval, by the following:
+
+H$_{0}$ : $\phi$$_{1}$ = $\phi$$_{i}$ = $\theta$$_{1}$ = $\theta$$_{i}$ = 0
+
+H$_{1}$ : $\phi$$_{1}$ $\neq$ $\phi$$_{i}$ $\neq$ $\theta$$_{1}$ $\neq$ $\theta$$_{i}$ $\neq$ 0
+
+The coefficients will be interpreted as follows; a p-value less than or equal to 0.05 we reject the null hypothesis, therefore $\phi$$_{i}$ and/or $\theta$$_{i}$ is statistically significant, and the variable does have an effect on oil consumption. Otherwise, if the p- value is greater than 0.05 we fail to reject the null hypothesis, therefore $\phi$$_{i}$ and/or $\theta$$_{i}$ is statistically insignificant, and the variable does not have an effect on oil consumption.
+
+### 5. Results
+#### ACF/PACF Tests
+```{r, echo=FALSE, include=FALSE}
+
+oilPACF <- pacf(Oil)
+deathsACF <- acf(Deaths)
+casesPACF <- pacf(Cases)
+irPACF <- pacf(IR)
+stocksACF <- acf(Stocks)
+```
+##### Figure 2.
+```{r, echo=FALSE, fig.show="hold", out.width="50%"}
+#Oil
+oilPACF$lag=oilPACF$lag*12
+plot(oilPACF, title = "(a)")
+
+#Deaths
+deathsACF$lag=deathsACF$lag*12
+plot(deathsACF, title = "(b)")
+
+#Cases
+casesPACF$lag=casesPACF$lag*12
+plot(casesPACF, title = "(c)")
+
+#IR
+irPACF$lag=irPACF$lag*12
+plot(irPACF, title = "(d)")
+
+#Stocks
+stocksACF$lag=stocksACF$lag*12
+plot(stocksACF, title = "(e)")
+
+```
+
+Each graph displays either the ACF or the PACF where the 95% confidence interval is located on the y-axis and the lag length is located on the x-axis. The standard ACF was used for deaths and stocks (indicating moving average processes) while the PACF was used for oil, cases, and interest rate (indicating autoregressive processes). From the graphs, we can see that the optimal lag for each variable is one.
+
+#### Unit-root Tests
+```{r, echo=FALSE, include=FALSE}
+dOil <- diff(Oil)
+dIR <- diff(IR)
+dStocks <- diff(Stocks)
+dDeaths <- diff(Deaths)
+dCases <- diff(Cases)
+
+###Level
+#ADF
+adf.test(Oil, k = 1) #n
+adf.test(Deaths, k = 0) #s
+adf.test(Cases, k = 1) #n
+adf.test(IR, k = 1) #n
+adf.test(Stocks, k = 1) #n
+
+#PP
+pp.test(Oil) #n
+pp.test(Deaths) #s
+pp.test(Cases) #s
+pp.test(IR) #n
+pp.test(Stocks) #n
+
+# KPSS Test
+kpss.test(Oil) #n
+kpss.test(Deaths) #s
+kpss.test(Cases) #n
+kpss.test(IR) #n
+kpss.test(Stocks) #s
+
+### First Differences
+adf.test(dOil, k = 1) #s
+adf.test(dDeaths, k = 1) #s
+adf.test(dCases, k = 1) #s
+adf.test(dIR, k = 1) #s
+adf.test(dStocks, k = 2) #s
+
+# Phillips Perron Test
+pp.test(dOil) #s
+pp.test(dDeaths) #s
+pp.test(dCases) #s
+pp.test(dIR) #s
+pp.test(dStocks) #s
+
+# KPSS Test
+kpss.test(dOil) #s
+kpss.test(dDeaths) #s
+kpss.test(dCases) #s
+kpss.test(dIR) #s
+kpss.test(dStocks) #s
+
+ADF1 <- rbind(adf.test(Oil, k = 1)$p.value, 
+               adf.test(Deaths, k = 1)$p.value, 
+               adf.test(Cases, k = 1)$p.value, 
+               adf.test(IR, k = 1)$p.value, 
+               adf.test(Stocks, k = 1)$p.value)
+PP1 <- rbind(pp.test(Oil)$p.value,
+      pp.test(Deaths)$p.value,
+      pp.test(Cases)$p.value,
+      pp.test(IR)$p.value,
+      pp.test(Stocks)$p.value)
+KPSS1 <- rbind(kpss.test(Oil)$p.value, 
+               kpss.test(Deaths)$p.value, 
+               kpss.test(Cases)$p.value, 
+               kpss.test(IR)$p.value, 
+               kpss.test(Stocks)$p.value)
+
+
+ADF2 <- rbind(adf.test(dOil, k = 1)$p.value,
+              adf.test(dDeaths, k = 1)$p.value,
+              adf.test(dCases, k = 1)$p.value,
+              adf.test(dIR, k = 1)$p.value,
+              adf.test(dStocks, k = 2)$p.value)
+PP2 <- rbind(pp.test(dOil)$p.value,
+             pp.test(dDeaths)$p.value,
+             pp.test(dCases)$p.value,
+             pp.test(dIR)$p.value,
+             pp.test(dStocks)$p.value)
+KPSS2 <- rbind(kpss.test(dOil)$p.value,
+               kpss.test(dDeaths)$p.value,
+               kpss.test(dCases)$p.value,
+               kpss.test(dIR)$p.value,
+               kpss.test(dStocks)$p.value)
+
+URT <-as.data.frame(cbind(ADF1,PP1,KPSS1))
+dURT <- as.data.frame(cbind(ADF2,PP2,KPSS2))
+
+```
+##### Table 3.
+```{r, echo=FALSE}
+
+URT <- setNames(URT, c("ADF", "PP", "KPSS"))
+rownames(URT) <- c("Oil", "Deaths", "Cases", "Interest Rate", "Stocks")
+pander(URT, title = "Levels")
+
+```
+
+The ADF, PP and KPSS tests are conducted to test for level stationary in Table 3. Here, we can see that only the deaths variable does not have a unit-root as it has a p-value less than 0.05 for both the ADF and PP tests. It also has a p-value greater than 0.05 for the KPSS test so we fail to reject that the deaths variable is level stationary. The remaining variables all require a first difference to become stationary.
+
+##### Table 4.
+```{r, echo=FALSE}
+
+dURT <- setNames(dURT, c("ADF", "PP", "KPSS"))
+rownames(dURT) <- c("dOil", "dDeaths", "dCases", "dInterest Rate", "dStocks")
+pander(dURT, tile = "First difference")
+
+```
+
+The same tests are completed for the first differences of each variable and shown in Table 4. We either reject or accept the appropriate hypotheses for every variable from each test that indicate stationarity.
+This suggests that the deaths variable is I(0) while oil, cases, interest rates and stocks are all I(1). Since I have a mixed stationary set of variables and the dependent variable is I(1), I can now confirm the ARDL model is suitable for my regression analysis.
+Comparing these results to those of the time series plots (Figure 2) and the ACF and PACF graphs (Figure 4) , everything aligns except for deaths. The unit-root and stationary test results suggest that deaths is stationary without the need for differencing. However, from Figure 2, we can see that this is only due to the rare nature of the time series as mentioned. Luckily, the bounds cointegration test developed by Pearson, Shin and Smith is used in this paper and it can explain long-term relationships for mixed variables. Therefore, this contradiction does not pose any problem to final regression outputs.
+
+#### ARDL 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+options(warn=-1)
+
+Model <- dynardl(Oil ~ Deaths + Cases + IR + Stocks,
+                 levels = c("Deaths"),
+                 lagdiffs = list("Oil" = 1, "Cases" = 1, "IR" = 1, "Stocks" = 1),
+                 ec = TRUE, simulate = FALSE)
+pander(summary(Model))
+```
+
+Firstly, it is worth mentioning that past values of oil consumption are shown to have a statistically significant inverse relationship with its' current values. However, this study will be solely concentrating on the relationships that Covid-19 related deaths and cases have with oil demand.  
+The results suggest that the lagged first difference of deaths has a significant negative relationship with oil consumption as it has a p-value of 0.00002343 which is much less than 0.05. Therefore, I can reject the null hypothesis with greater than 95% confidence and say that an increase of one in the monthly average death rate may lead to a reduction of 58.93 barrels in the monthly change of oil in the short run. The lagged difference of cases, however, has a p-value of 0.3286 greater than 0.05 so I fail to reject the null hypothesis that it is not insignificant.   
+The model produced a relatively high R^2 of 0.7353 which means that 73.53% of the variability is explained by the model. There is a slight decrease in the adjust R^2 to 0.6786 which implies an additional exogenous variable does not add more value to the model.
+
+#### Residuals Test
+```{r, echo=FALSE, include = FALSE}
+dynardl.auto.correlated(Model)
+```
+##### Table 5.
+
+Breusch-Godfrey LM Test | Shapiro-Wilk Test | Critical Value
+------- | ------- | ------- 
+0.325 | 0.953 | 0.05
+
+The Breusch-Godfrey LM Test has a null hypothesis of no autocorrelation. The p-value of 0.325 is greater than 0.05 so we fail to reject the null hypothesis that no autocorrelation exists. The Shapiro- Wilk Test has a null hypothesis that residuals are distributed normal. The p-value of this test is 0.953 (>0.05) so fail to reject the null hypothesis that the residuals of the model are normally distributed.   
+
+#### Bounds F-test for cointegration
+##### Table 6.
+
+Critical value | I(0) | I(1)  
+----------- | ------- | ------- 
+10% | 2.66 | 3.838 
+5% | 3.202 | 4.544 
+1% | 4.428 | 6.25 
+
+
+F-statistic = 6.29606768959931 
+
+The cointegration test uses the F-statistic and the critical values for F at 90%, 95% and 99% confidence intervals. If the F-statistic falls below the lower bound of the critical values defined in the I(0) set, no cointegration exists at the respective confidence level. If the F-statistic lies above the upper bound of the critical values defined in the I(1) set, cointegration does exist at the respective confidence level. If the F-statistic falls somewhere in between the upper bound of the I(0) and the lower bound of the I(1) critical values, the test is considered inconclusive. According to Table 3, we have an F-statistic approximately equal to 6.296 which is greater than the upper bound of 6.25. Therefore, we can say with 99% confidence that cointegration does indeed exist. After checking this test for each variable, the death rate was the only variable to display a cointegrating relationship.
+```{r, include = FALSE}
+ardlBound(data = Data2, formula = Oil ~ Deaths,
+          case = 3, p = NULL,  
+          autoOrder = TRUE, HAC = FALSE,
+          ic = c("AIC", "BIC", "MASE", "GMRAE"), max.p = 1, 
+          max.q = 1, ECM = TRUE, stability = TRUE)
+
+ardlBound(data = Data2, formula = Oil ~ Cases,
+          case = 3, p = NULL,  
+          autoOrder = TRUE, HAC = FALSE,
+          ic = c("AIC", "BIC", "MASE", "GMRAE"), max.p = 1, 
+          max.q = 1, ECM = TRUE, stability = TRUE)
+
+#Only deaths has a cointegrating relationship
+```
+
+#### Error Correction Model
+```{r, include=FALSE}
+
+Data2 <- cbind(Oil,Deaths,Cases,IR,Stocks)
+
+ECM <- ardlBound(data = Data2, formula = Oil ~ Deaths + Cases + IR + Stocks,
+                 case = 3, p = NULL,  
+                 autoOrder = FALSE, HAC = FALSE,
+                 ic = c("AIC", "BIC", "MASE", "GMRAE"), max.p = 1, 
+                 max.q = 1, ECM = TRUE, stability = TRUE)
+#Running this code provides the PSS cintegration test outlined in the table above
+
+```
+
+```{r, echo=FALSE}
+
+pander(summary(ECM$ECM$EC.model))
+
+```
+
+If the error-correction coefficient is negative and significant then a long run causal relationship exists. This also means that the process will converge in the long run. As we can see from the results displayed above, the error correction term is negative (-0.3857) and significant (p-value of 1.0000556 < 0.05). This implies that 38.57% of oil consumption that deviates from the long run equilibrium is corrected in the long run. 
+
+#### Conditional error correction ARDL estimation
+```{r, echo=FALSE}
+
+pander(summary(ECM$ARDL.model))
+
+```
+
+The regression output above displays the results of the short-run and long run relationships between Covid-19 cases and deaths have with oil consumption in Ireland. The short-run effects are defined by the coefficients of the first differenced variables. The long run effects are defined by the coefficients of the lagged variables.   
+In the short-run, deaths have a negative coefficient of -64.35 with a significant p-value of 0.000002828. This suggests with greater than 95% confidence that if the monthly average death rate linked to the Covid-19 virus increased by 1, the demand for oil would fall by approximately 64 barrels. Cases on the other hand has a positive coefficient of 0.9758 and a significant p-value of 0.01832. This suggests with 95% confidence that an increase of 1 in the monthly average of Covid-19 cases would actually increase the consumption of oil by approximately one barrel.   
+In the long term, deaths have a very similar effect on oil consumption compared to the short term. It has a negative coefficient of -64.21 with a significant p-value of 0.0001277. This suggests with greater than 95% confidence that if the average monthly Covid-19 related deaths was to increase by 1, the demand for oil would decrease by approximately 64 barrels. Cases on other hand, does not have a significant p-value (0.542 > 0). Therefore, the relationship between oil demand and cases in Ireland can only be explained in the short run while the relationship with deaths can be explained in both the short and long run. This coincides with the cointegration test result found earlier as only the deaths variable was found to have a cointegrating relationship with oil demand. In this regression output, the coefficient for the lagged dependent variable is the same as the error correction term specified earlier.   
+The model produced a  high R^2 of 0.8251 which means that 82.51% of the variability is explained by the model. There is a slight decrease in the adjusted R^2 to 0.7522 which implies an additional exogenous variable does not add more value to the model.
+
+#### Residuals and Structure Stability
+```{r, echo=FALSE, include = FALSE}
+
+ARDL2 <- ECM$ARDL.model
+
+bgtest(ARDL2)
+shapiro.test(ARDL2$residuals)
+resettest(ARDL2)
+
+```
+##### Table 7.
+
+Breusch-Godfrey Test | Shapiro-Wilk Test | Reset Test | Critical Value
+------- | ------- | ------- | -------
+0.2283 | 0.9454 | 0.3268 | 0.05
+
+Once again, the Breusch-Godfrey LM Test has a null hypothesis of no autocorrelation. The p-value of 0.2283 is greater than 0.05 so we fail to reject the null hypothesis that autocorrelation does not exist. The Shapiro- Wilk Test has a null hypothesis that residuals are distributed normal. The p-value of this test is 0.9454 (> 0.05) so fail to reject the null hypothesis that the residuals of the model are normally distributed. The Ramsey Reset Test was used to test if the reparametrized error corrected ARDL model is specified appropriately. The null hypothesis is that the model is correctly specified. The p-value of 0.3268 is greater than 0.05 so we fail to reject the null hypothesis and so the model is correctly specified.   
+To check if structural stability exists within the parameters of the model, I conducted tests such as the cumulative sum of recursive residuals (CUSUM), the recursive CUSUM of squares as well as the moving sums of recursive residuals (MOSUM). The recursive residuals for each test were in fact are located within the boundaries of the 5% significance level. The final ARDL error correction model has therefore, passed the relevant diagnostic checks.
+
+#### Grangers Causality Test
+```{r, echo = FALSE, include = FALSE}
+
+goil <- ECM$ARDL.model$model$`L(Oil, 1)`
+gdeaths <- ECM$ARDL.model$model$`L(Deaths, 1)`
+gcases <- ECM$ARDL.model$model$`L(Cases, 1)`
+
+gdoil <- ECM$ARDL.model$model$dOil
+gddeaths <- ECM$ARDL.model$model$dDeaths
+gdcases <- ECM$ARDL.model$model$dCases
+
+```
+``` {r, echo = FALSE, include = FALSE}
+
+grangertest(gdoil ~ gddeaths, order =  1) #cause
+grangertest(gddeaths ~ gdoil, order = 1) #no cause
+
+grangertest(gdoil ~ gdcases, order =  1) #cause
+grangertest(gdcases ~ gdoil, order = 1) #cause
+```
+##### Table 8.
+
+Null Hypothesis | P-value  
+------- | ------- | 
+Oil does not Granger-cause Deaths | 0.06725 
+Deaths does not Granger-cause Oil | 0.03018 
+Oil does not Granger-cause Cases | 0.06557 
+Cases does not Granger-cause Oil | 0.1215 
+
+The null hypothesis of this test is that X does not granger cause Y and vice versa. In order to conduct this test, it is required that the time series of the variables tested are stationary. Therefore, only the short-term estimates from the ARDL error correction model were checked for Granger causality due to first differenced stationarity.   
+As we can see from the results, uni-directional granger-causality exists running from the death rate to oil demand. Deaths with lag one granger causes oil consumption in the short run, but not the other way around (p-values of 0.06725 > 0.05 and 0.03018 < 0.05 respectively).  Bi-directional granger-causality exists running in the direction of cases to oil demand. The lagged cases granger-causes oil consumption as well as in the other direction (p-values of 0.06557 > 0.05 and 0.1215 > 0.05 respectively).
+
+
+### 6. Discussion
+The methodology used in this paper produced interesting results in identifying and calculating the effects of the Covid-19 virus on oil consumption thus far. Firstly, it is worth mentioning some comparisons of the plotted time-series in Figure 2 with the real world. The consumption of Oil took on a significant dip at the exact time of the first lockdown at the end of March to April before beginning the recovery in May when the lockdown ends (Fig 2a). The difference between the reduction in barrels of oil consumed from March to April (1st lockdown) compared to the reduction from October to November (2nd lockdown) suggests that the government was better prepared when tackling the second onslaught of the virus. The visual representation also seems to be an accurate representation of the effects on the negative impacts on the transport industry which is primarily fuelled by oil as mentioned in the literature review.  
+The shock in oil consumption can be seen at the start of the first lockdown before seemingly recovering back to its equilibrium over the following seven months. This is the visual representation of the speed at which the demand for oil was able to readjust back to its long run equilibrium described by the error correction term. As stated previously, 38.57% of oil consumption that deviates from the long run equilibrium is corrected in the long run. This correlates with the visual representation. Although coming up to the end of 2020, the short-run equilibrium in oil consumption seems to have corrected itself, I know that this is not the case in reality. At the time of writing this paper I know that on the 24th of December, a third lockdown was imposed where the nation is currently facing level five restrictions until June. Due to limitations on available data, I cannot examine the effects of this third lockdown on the error correction term as well as the short and long run coefficients. 
+The findings from the ARDL error correction model output were very interesting. The Covid-19 death rate had an inverse relationship with the consumption of oil. This is what I suspected before I performed the regression analysis. The extent of the effect (increase of 1 death on the monthly average reduces oil consumed by approximately 64 barrels in both the short and long run) seems accurate given the total oil usage in Ireland as well as the size of the country. This result is also similar to that found by Nima Norouzi where epidemic severeness (measured by deaths) had a significant affect on electricity and oil demand in China.   
+However, cases and oil consumption could only be described by a positive relationship in the short run which I found to be surprising. This was unlike what Kentaka Aruga found where a long-run relationship holds between energy consumption and cases was found in India. However, cases were also found to have a positive effect on energy consumption just like in my paper which he attributed to the relaxation of lockdown (an increase of 1 case on the monthly average increases oil consumption by approximately 1 barrel in the short run).   
+Applying this same reasoning to the situation in Ireland, it is possible that lockdowns are initiated based on the rising death rate rather than the increase of cases. This is why the level of cases was allowed to increase exponentially from July to October, surpassing the previous all-time high for cases in Ireland (Fig 1b). However, the monthly average of deaths was only allowed to increase slightly from August to October reaching only 7.9% of the previous all-time high of deaths compared to cases (Fig 1c). This makes sense as an increase in one death carries a much greater weight than an increase in one case given its high recovery rate particularly amongst young people. Therefore, it is fair to assume based off this analysis that the Irish Government makes its decision to impose lockdowns based on the death rate rather than cases. In other words, the assumption that Covid-19 death rate causes the government to impose full nation lockdowns which then has had a negative effect on oil consumption. 
+Cases on the other hand has a slight positive effect on oil consumption due to the increased residential use for oil and easing of restrictions. This signifies the stabilisation of the recovering transport industry while residential oil demand remained high due to most of the nation working from home.   
+The Granger causality test results also support the regression findings when applying them to the real world. To interpret the results of the Grangers causality test, we must look at the bigger picture. In doing so, it is important to remember deaths significantly and indirectly affects oil consumption through the form of lockdowns as explained earlier. In other words, for as long as Covid-19 deaths are occurring, lockdowns will be imposed and as long as cases are being confirmed, restrictions will be in place. With this being said, past value of the monthly average of deaths can be helpful in predicting oil consumption because lockdowns close businesses and restrict the transport industry. On the other hand, oil consumption does not Granger cause deaths due to said lockdowns. Hypothetically, if no lockdown was imposed while death rates were high, then increasing oil consumption through open businesses and unrestricted movements would in fact indirectly granger cause deaths. However, of course, this would be inhumane and is not the case in reality.  
+Cases bi-directionally Granger-cause oil consumption. This is possibly due to lockdowns restrictions only being eased from level 5 to level 3. Cases remained quite high (average of 102 cases) throughout these level 3 restrictions from April to October while oil consumption recovered from businesses opening back up and people allowed to transport out of their home counties. Therefore, it can be said that cases granger causes oil consumption through government induced restrictions. On the other hand, oil consumption granger causes cases because the easing of restrictions allows for greater spread of the virus.  
+According the law of supply and demand by Alfred Marshall, if demand falls, so too does the equilibrium price and the supply along with it _(Investopedia, 2020)_. The results of the regression analysis have given statistical support that Covid-19 has reduced the demand for oil. The reduced demand for oil as a result of the first lockdown shows to have had a negative impact on the price of oil in OECD countries which includes Ireland. The prices of crude oil, gasoline, automotive diesel, domestic heating oil, and fuel oil for industry all decreased by  40.6%, 17.3%, 11.5%, 13.9% and 17.9% respectively from March to May _(IEA, 2020)_. This then has factored into the decrease in oil production in the UK whereby Ireland imports 76% of its oil products on top of the fact that all of Irelands oil products are imported _(SEAI, 2016)_. 
+Oil accounts for one third of the world's total Co2 emissions which has increased global warming having devastating effects on the environment including air and water quality _(ClientEarth, 2020)_. The Covid-19 pandemic has resulted in large decreases in the consumption of oil and thus, reduced the amount of greenhouse gas emissions (GHG) released into the atmosphere. According to the Environmental Protection Agency (EPA) and Sustainable Energy Authority of Ireland (SEAI), GHG have fallen by 5.9% in 2020 which is the biggest annual reduction since the 2008 financial crisis. Emissions from the transport sector have fallen by approximately 2 million tonnes of Co2 compared to 2019 figures _(O'Sullivan, 2021)_. While this suggests the Irish economy are on track to meet the Paris Agreement of reducing emissions by 40% by 2030, oil consumption will likely recover back to pre-Covid-19 levels after the virus passes. The director of the EPA stated, "While these early estimates show a reduction in greenhouse gas emissions for 2020 as a result of Covid restrictions, this level of emission reductions, at a minimum, will be required annually."  
+The results of my regression analysis using the ARDL error correction model seem to have depicted the effects Covid-19 has had on oil consumption in Ireland quite well. However, there is certainly room for improving these estimates in the future. Post-pandemic, when a suitable time series that covers the start to the end of the existing virus will capture more accurately the estimated relationships examined in this paper. 
+
+
+### 7. Conclusion
+As covid-19 spread rapidly across the world having significant impacts on many economies, Ireland was no exception. I investigated in this paper how the virus impacted the demand for oil through both Covid-19 related deaths and cases. The results of my analysis indicated that the death rate in particular was an indirect factor leading to the negative impact on oil consumption in Ireland. This was due to the death rate seemingly taking incidence over cases when the government decided on imposing lockdowns and further restrictions. This had major effects on shutting down and limiting the transport sector in particular whereby deaths and cases were both found to have significant effects on oil consumption. Similar results from other papers further supported these findings. Although the virus has clearly had devastating effects all over the world ranging from business closures to the millions of people dying all over the world, a certain positive was found in the environmental impacts. GHG's have reduced by 5.9% with 2 million tonnes of carbon being from the oil fuelled transport sector _(O'Sullivan, 2021)_.     
+The findings in this paper were only based on a percentage of the ongoing pandemic. Although there is much speculation on when the days of restricted movements on people's daily lives may end, it is hoped life will return back to normal in 2022. If such optimism comes true, a second analysis on the updated data would provide more accurate estimates. I would expect the Covid-19 related deaths to have a greater negative effect on oil consumption in the future given the country's longest lockdown from the end of December to what is expected to be June. I also suspect that cases will continue to have a very slight positive effect on oil demand due to the mass increase in residential oil uses. 
+
+
+#### References:
+1. Brennan, C., 2021. A year with Covid in Ireland - timeline of incredible lockdowns, cases and deaths, pub closures and disasters. Irish Mirror, [online] Available at: <https://www.irishmirror.ie/news/irish-news/year-covid-ireland-timeline-incredible-23585166> [Accessed 8 April 2021].    
+2. Burke-Kennedy, E., 2020. Ireland had one of highest rates of home-working during Covid-19 crisis. Irish Times, [online] Available at: <https://www.irishtimes.com/business/work/ireland-had-one-of-highest-rates-of-home-working-during-covid-19-crisis-1.4369346> [Accessed 8 April 2021].  
+3. SEAI, 2021. ENERGY IN IRELAND. 2020 Report. [online] Dublin: SEAI. Available at: <https://www.seai.ie/publications/Energy-in-Ireland-2020.pdf> [Accessed 8 April 2021].
+4. CSO, 2021. Statistical Yearbook of Ireland 2020. Tourism, Transport & Fuel Excise Clearances. [online] Cork: CSO. Available at: <https://www.cso.ie/en/releasesandpublications/ep/p-syi/statisticalyearbookofireland2020/covid-19/tourismtransportfuelexciseclearances/> [Accessed 8 April 2021]. 
+5. EPA, 2020. IRELAND IN THE PANDEMIC: ENVIRONMENTAL OBSERVATIONS. [online] EPA, p.Page 7. Available at: <http://www.epa.ie/pubs/reports/other/corporate/EPA_Covid19.pdf> [Accessed 9 April 2021].    
+6. Roser, M., 2020. The Spanish flu (1918-20): The global impact of the largest influenza pandemic in history. [online] Our World in Data. Available at: <https://ourworldindata.org/spanish-flu-largest-influenza-pandemic-in-history> [Accessed 8 April 2021].  
+6. HSE, 2019. "Swine Flu" Pandemic Vaccine. [online] Dublin: HSE. Available at: <https://www.hse.ie/eng/health/immunisation/hcpinfo/othervaccines/swineflu2019.html> [Accessed 8 April 2021].  
+7. S&P Global, 2020. Moving Mountains: COVID-19 and Peak Oil Demand. [online] S&P Global. Available at: <https://www.spglobal.com/en/research-insights/featured/moving-mountains-covid-19-and-peak-oil-demand> [Accessed 8 April 2021]. 
+9. SEAI, 2016. Energy Security in Ireland: A Statistical Overview. [online] SEAI. Available at: <https://www.seai.ie/publications/Energy-Security-in-Ireland-2015.pdf> [Accessed 9 April 2021].  
+10. Arouri, M., Ben Youssef, A., M'henni, H. and Rault, C., 2012. Energy consumption, economic growth and CO2 emissions in Middle East and North African countries. Energy Policy, [online] 45, pp.342-349. Available at: <https://www.sciencedirect.com/science/article/pii/S0301421512001590>.  
+11. O'Sullivan, K., 2021. Ireland's carbon emissions decline by almost 6% in 2020 due to pandemic. The Irish Times, [online] Available at: <https://www.irishtimes.com/news/environment/ireland-s-carbon-emissions-decline-by-almost-6-in-2020-due-to-pandemic-1.4470387> [Accessed 8 April 2021].  
+12. Worldometers.info. 2021. Worldometer. [online] Available at: <https://www.worldometers.info/oil/ireland-oil/#:~:text=Ireland%20ranks%2066th%20in%20the,of%2097%2C103%2C871%20barrels%20per%20day.> [Accessed 8 April 2021].  
+13. SEAI, 2020. Ireland's Energy Targets. [online] SEAI. Available at: <https://www.seai.ie/about/irelands-energy-targets/> [Accessed 8 April 2021]. 
+14. I. Stern, D., 2018. Environmental Kuznets Curve. Reference Module in Earth Systems and Environmental Sciences, [online] Available at: <https://www.sciencedirect.com/topics/earth-and-planetary-sciences/environmental-kuznets-curve> [Accessed 9 April 2021].  
+15. Buechler, E., Powell, S., Sun, T., Zanocco, C., Astier, N., Bolorinos, J., Flora, J., Boudet, H. and Rajagopal, R., 2020. Power and the Pandemic: Exploring Global Changes in Electricity Demand During COVID-19. Physics and Society, [online] Available at: <https://arxiv.org/abs/2008.06988> [Accessed 8 April 2021].  
+16. Aruga, K., Islam, M. and Jannat, A., 2020. Effects of COVID-19 on Indian Energy Consumption. Sustainability, [online] 12(14), p.5616. Available at: <https://www.researchgate.net/publication/342920752_Effects_of_COVID-19_on_Indian_energy_consumption>.    
+17. Norouzi, N., Zarazua de Rubens, G., Choupanpiesheh, S. and Enevoldsen, P., 2020. When pandemics impact economies and climate change: Exploring the impacts of COVID-19 on oil and electricity demand in China. Energy Research & Social Science, [online] 68, p.101654. Available at: <https://www.sciencedirect.com/science/article/pii/S2214629620302292>.  
+18. Pesaran, M., Shin, Y. and Smith, R., 2001. Bounds testing approaches to the analysis of level relationships. Journal of Applied Econometrics, [online] 16(3), pp.289-326. Available at: <https://onlinelibrary.wiley.com/doi/abs/10.1002/jae.616>.  
+19. He, F., Hu, Z., Zhang, W., Cai, L., Cai, G. and Aoyagi, K., 2017. Construction and evaluation of two computational models for predicting the incidence of influenza in Nagasaki Prefecture, Japan. Scientific Reports, [online] 7(1). Available at: <https://www.nature.com/articles/s41598-017-07475-3>. 
+20. Granger, C., 1969. Investigating Causal Relations by Econometric Models and Cross-spectral Methods. Econometrica, [online] 37(3), p.424. Available at: <https://www.jstor.org/stable/1912791>. 
+21. Nkoro, E. and Uko, A., 2013. A Generalized Autoregressive Conditional Heteroskedasticity Model of the Impact of Macroeconomic Factors on Stock Returns: Empirical Evidence from the Nigerian Stock Market. International Journal of Financial Research, [online] 4(4). Available at: <http://www.scienpress.com/Upload/JSEM/Vol%205_4_3.pdf>.
+22. Investopedia, 2020. Law of Supply and Demand. [online] Investopedia. Available at: <https://www.investopedia.com/terms/l/law-of-supply-demand.asp#:~:text=The%20law%20of%20demand%20says,are%20traded%20on%20a%20market.> [Accessed 9 April 2021].  
+23. IEA, 2020. Monthly oil price statistics. [online] IEA. Available at: <https://www.iea.org/reports/monthly-oil-price-statistics> [Accessed 9 April 2021]. 
+24. ClientEarth, 2020. Fossil fuels and climate change: the facts. [online] ClientEarth Communications. Available at: <https://www.clientearth.org/latest/latest-updates/stories/fossil-fuels-and-climate-change-the-facts/#:~:text=Oil%20releases%20a%20huge%20amount,the%20world's%20total%20carbon%20emissions.&text=Natural%20gas%20is%20often%20promoted,the%20world's%20total%20carbon%20emissions.> [Accessed 9 April 2021].  
+25. Knoema, 2021. JODI Oil Dataset. [online] Available at: <https://knoema.com/JODIOIL2018/jodi-oil-dataset-monthly-update> [Accessed 8 April 2021].    
+26. WHO, 2021. WHO Coronavirus (COVID-19) Dashboard. [online] Available at: <https://covid19.who.int/table> [Accessed 8 April 2021].    
+27. OECD, 2021. Monthly Monetary and Financial Statistics (MEI). [online] Available at: <https://stats.oecd.org/index.aspx?queryid=86#> [Accessed 8 April 2021].    
+28. Euronext, 2021. ISEQ All Share. [online] Available at: <https://live.euronext.com/en/product/indices/IE0001477250-XDUB> [Accessed 8 April 2021].   
+
+
+
+
